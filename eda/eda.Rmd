@@ -1,6 +1,6 @@
 ---
-title: "Untitled"
-date: "MM/DD/YYYY"
+title: "UNC Basketball's March Madness Dreams Dashed"
+date: "05/31/2023"
 output:
   html_document:
     toc: true
@@ -12,7 +12,7 @@ knit: (function(i, encoding) {apstyle::render(i, encoding)})
 *Rendered at `r format(Sys.time(), '%I:%M %p, %b. %d, %Y')`*
 
 <!-- Contact info: leave author/reporter/editor contact info here -->
-*Firstname Lastname (<email@domain.com>)*
+*Sherin Stanley (<sherinstanley@gmail.com>)*
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
@@ -30,6 +30,7 @@ knitr::opts_knit$set(
 library(tidyverse)
 library(apstyle)
 library(ggplot2)
+library(gamezoneR)
 
 # Install via devtools package using the following:
 devtools::install_github(repo = "JackLich10/gamezoneR")
@@ -39,16 +40,17 @@ tictoc::tic()
 progressr::with_progress({
   pbp <- gamezoneR::load_gamezone_pbp(gamezoneR:::available_seasons())
 })
-tictoc::toc()
+#tictoc::toc()
 ## 75.21 sec elapsed
-length(unique(pbp$game_id))
+#length(unique(pbp$game_id))
 ## 29455 games
-pbp %>% dplyr::filter(!is.na(loc_x)) %>% nrow()
+#pbp %>% dplyr::filter(!is.na(loc_x)) %>% nrow()
 ## 3,355,838 shot locations
 ```
 ```{r}
 library(dplyr)
 library(ggplot2)
+library(gamezoneR)
 
 # set a ggplot2 theme
 theme_set(
@@ -71,47 +73,190 @@ unc_schedule2 <- gamezoneR::gamezone_mbb_team_schedule(team = "North Carolina", 
 ```
 ## Overview
 
-  In a stunning turn of events, the Carolina Men's Basketball Team, widely anticipated as frontrunners for this year's national championship, fell short of even making it to the tournament. The profound disappointment among Tar Heels fans reverberated through the air as their championship dreams were abruptly shattered.
-  What was the cause for this unexpected shift, you might ask. Was it the starting lineup replacement of Pete Nance after Brady Manek left the team? Or was it Caleb Love's unreliable shooting regression?
+  In a stunning turn of events, the Carolina Men's Basketball Team, widely anticipated as frontrunners for this year's national championship, fell short of even making it to the tournament. The profound disappointment among Tar Heels fans reverberated through the air as their championship dreams were abruptly shattered. The team's unexpected absence from the tournament has raised questions about the factors that led to this disappointing outcome. Could it be attributed to the lineup changes following Brady Manek's departure or Caleb Love's inconsistent shooting performance? The search for answers begins as Tar Heels supporters grapple with the realities of a season that didn't unfold as expected.
+  First, I'll look into the difference between offensive and defensive techniques.
+  
 
 ```{r}
-pbp <- gamezoneR::gamezone_mbb_pbp(unc_schedule$game_id[1],
-                                   sub_parse = T)
-pbp %>% 
-  dplyr::count(sub_error)
-
-manek_pbp <- purrr::map_df(unc_schedule$game_id, 
+unc_pbp <- purrr::map_df(unc_schedule$game_id, 
                           gamezoneR::gamezone_mbb_pbp, sub_parse = F)
-
-manek_shots <- manek_pbp %>% 
-  dplyr::filter(!is.na(loc_x),
-                shooter == "Brady Manek")
-
-gamezoneR::base_court +
-  geom_point(data = manek_shots,
-             aes(x = loc_x, y = loc_y, color = shot_outcome),
-             alpha = 0.8) +
-  theme(axis.line = element_blank(),
-        axis.text= element_blank(),
-        axis.ticks = element_blank(),
-        axis.title = element_blank(),
-        panel.background = element_blank(),
-        panel.grid = element_blank(),
-        plot.title = element_text(face = "bold", hjust = 0.5, size = 30/.pt, margin = margin(0, 0, 5, 0)),
-        plot.subtitle = element_text(face = "italic", hjust = 0.5, size = 24/.pt),
-        plot.caption = element_text(face = "italic", hjust = 1, size = 20/.pt, margin = margin(0, 0, 0, 0)),
-        legend.spacing.x = grid::unit(0, 'cm'),
-        legend.title = element_text(size = 20/.pt, face = "bold"), 
-        legend.text = element_text(size = 16/.pt),
-        legend.margin = margin(0, 0, 0, 0),
-        legend.position = 'bottom',
-        legend.box.margin = margin(-35, 0, 0, 0),
-        plot.margin = margin(5, 0, 5, 0)) +
-  labs(title = "All of Brady Manek's shots at UNC",
+unc_pbp %>%
+  dplyr::filter(!is.na(poss_before)) %>%
+  dplyr::mutate(poss_number = as.numeric(poss_number),
+                shot_made_numeric = dplyr::case_when(
+                  is.na(shot_outcome) ~ NA_real_,
+                  shot_outcome == "made" ~ 1,
+                  shot_outcome == "missed" ~ 0),
+                shot_value = dplyr::case_when(
+                  is.na(shot_outcome) ~ NA_real_,
+                  free_throw == 1 ~ 1,
+                  three_pt == 1 ~ 3,
+                  T ~ 2),
+                points = dplyr::case_when(
+                  shot_made_numeric == 0 ~ 0,
+                  shot_made_numeric == 1 & free_throw == 1 ~ 1,
+                  shot_made_numeric == 1 & three_pt == 1 ~ 3,
+                  shot_made_numeric == 1 & three_pt == 0 & free_throw == 0 ~ 2)) %>%
+  dplyr::group_by(date, game_id, poss_before, poss_number) %>%
+  dplyr::summarise(fgm = sum(shot_outcome == "made" & free_throw == F, na.rm = T),
+                   fga = sum(!is.na(shot_outcome) & free_throw == F),
+                   ftm = sum(shot_outcome == "made" & free_throw == T),
+                   fta = sum(!is.na(shot_outcome) & free_throw == T),
+                   points = sum(points, na.rm = T),
+                   .groups = "drop") %>%
+  dplyr::group_by(date, game_id, poss_before) %>%
+  dplyr::summarise(poss = dplyr::n(),
+                   across(fgm:points, sum),
+                   .groups = "drop") %>%
+  dplyr::mutate(ppp = points/poss,
+                type = ifelse(poss_before == "North Carolina", "Offense", "Defense"),
+                color = ifelse(poss_before == "North Carolina", "black", "#003366"),
+                fill = ifelse(poss_before == "North Carolina", "#001A57", "white")) %>%
+  ggplot(aes(date, ppp, fill = fill, color = color)) +
+  geom_line() +
+  geom_point(aes(size = poss),
+             pch = 21, stroke = 0.9) +
+  scale_color_identity() +
+  scale_fill_identity() +
+  scale_size_continuous(range = c(0.8, 3.5)) +
+  labs(title = "North Carolina's offensive and defensive efficiency by game",
        subtitle = "2021-22 college basketball season",
-       color = "Outcome",
+       x = "Date",
+       y = "Points per possession",
+       size = "# of possessions",
        caption = "Chart: @jacklich10 | Data: @gamezoneR")
 ```
+```{r}
+unc_pbp2 <- purrr::map_df(unc_schedule2$game_id, 
+                          gamezoneR::gamezone_mbb_pbp, sub_parse = F)
+unc_pbp2 %>%
+  dplyr::filter(!is.na(poss_before)) %>%
+  dplyr::mutate(poss_number = as.numeric(poss_number),
+                shot_made_numeric = dplyr::case_when(
+                  is.na(shot_outcome) ~ NA_real_,
+                  shot_outcome == "made" ~ 1,
+                  shot_outcome == "missed" ~ 0),
+                shot_value = dplyr::case_when(
+                  is.na(shot_outcome) ~ NA_real_,
+                  free_throw == 1 ~ 1,
+                  three_pt == 1 ~ 3,
+                  T ~ 2),
+                points = dplyr::case_when(
+                  shot_made_numeric == 0 ~ 0,
+                  shot_made_numeric == 1 & free_throw == 1 ~ 1,
+                  shot_made_numeric == 1 & three_pt == 1 ~ 3,
+                  shot_made_numeric == 1 & three_pt == 0 & free_throw == 0 ~ 2)) %>%
+  dplyr::group_by(date, game_id, poss_before, poss_number) %>%
+  dplyr::summarise(fgm = sum(shot_outcome == "made" & free_throw == F, na.rm = T),
+                   fga = sum(!is.na(shot_outcome) & free_throw == F),
+                   ftm = sum(shot_outcome == "made" & free_throw == T),
+                   fta = sum(!is.na(shot_outcome) & free_throw == T),
+                   points = sum(points, na.rm = T),
+                   .groups = "drop") %>%
+  dplyr::group_by(date, game_id, poss_before) %>%
+  dplyr::summarise(poss = dplyr::n(),
+                   across(fgm:points, sum),
+                   .groups = "drop") %>%
+  dplyr::mutate(ppp = points/poss,
+                type = ifelse(poss_before == "North Carolina", "Offense", "Defense"),
+                color = ifelse(poss_before == "North Carolina", "black", "#003366"),
+                fill = ifelse(poss_before == "North Carolina", "#001A57", "white")) %>%
+  ggplot(aes(date, ppp, fill = fill, color = color)) +
+  geom_line() +
+  geom_point(aes(size = poss),
+             pch = 21, stroke = 0.9) +
+  scale_color_identity() +
+  scale_fill_identity() +
+  scale_size_continuous(range = c(0.8, 3.5)) +
+  labs(title = "North Carolina's offensive and defensive efficiency by game",
+       subtitle = "2022-23 college basketball season",
+       x = "Date",
+       y = "Points per possession",
+       size = "# of possessions",
+       caption = "Chart: @jacklich10 | Data: @gamezoneR")
+```
+
+  The decline in offensive and defensive efficiency of the Tar Heels this season, coupled with a significant decrease in the overall number of possessions, raises questions about the impact of individual players on the team's performance. Did changes in the roster affect the team's chemistry and effectiveness? Did certain players struggle to maintain their previous level of performance, resulting in a decline in overall team efficiency? By exploring these aspects, we can gain a better understanding of the factors that influenced the Tar Heels' performance this season.
+  
+  
+```{r}
+love_shots_22 <- unc_pbp %>% 
+  dplyr::filter(!is.na(loc_x),
+                shooter == "Caleb Love")
+
+#shot efficiency metrics
+total_shots <- nrow(love_shots_22)
+made_shots <- sum(love_shots_22$shot_outcome == "made")
+shot_percentage <- made_shots / total_shots
+
+cat("2021-22 Shot Efficiency Metrics:\n")
+cat("Total Shots:", total_shots, "\n")
+cat("Made Shots:", made_shots, "\n")
+cat("Shot Percentage:", sprintf("%.2f%%", shot_percentage * 100), "\n")
+```
+
+```{r}
+love_shots_23 <- unc_pbp2 %>% 
+  dplyr::filter(!is.na(loc_x),
+                shooter == "Caleb Love")
+
+#shot efficiency metrics
+total_shots2 <- nrow(love_shots_23)
+made_shots2 <- sum(love_shots_23$shot_outcome == "made")
+shot_percentage2 <- made_shots / total_shots
+
+cat("2022-23 Shot Efficiency Metrics:\n")
+cat("Total Shots:", total_shots, "\n")
+cat("Made Shots:", made_shots, "\n")
+cat("Shot Percentage:", sprintf("%.2f%%", shot_percentage * 100), "\n")
+```
+
+```{r}
+
+caleb_efficiency <- data.frame(
+  Season = c("2021-22", "2022-23"),
+  TotalShots = c(total_shots, total_shots2),
+  MadeShots = c(made_shots, made_shots2),
+  ShotPercentage = c(shot_percentage, shot_percentage2) * 100
+)
+
+ggplot(caleb_efficiency, aes(x = Season, y = ShotPercentage, fill = Season)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Season", y = "Shot Percentage (%)", title = "Caleb Love's Shot Efficiency") +
+  scale_fill_manual(values = c("2021-22" = "cornflowerblue", "2022-23" = "grey")) +
+  theme_minimal()
+```
+ 
+  Upon closer inspection, Caleb Love's Shot Percentage rates show minimal variation. The bar graph depicting his shooting performance appears strikingly similar (37.17% last season compared to 37.70% this season). This observation may come as a surprise to devoted Carolina fans who attributed our team's underperformance to the perceived unpredictability of Caleb Love's shooting.
+  This leads me to question the extent to which Brady Manek's departure and the subsequent addition of Pete Nance had a significant impact on Carolina Basketball, potentially jeopardizing their entire season.
+  
+  
+```{r}
+manek_shots <- unc_pbp %>% 
+  dplyr::filter(!is.na(loc_x),
+                shooter == "Brady Manek") 
+
+manek_map <- ggplot(manek_shots, aes(x = loc_x, y = loc_y, color = shot_outcome)) +
+  geom_point() +
+  labs(title = "Manek's Shot Map", subtitle = "2021-22 college basketball season") 
+manek_map
+```
+```{r}
+nance_shots <- unc_pbp2 %>% 
+  dplyr::filter(!is.na(loc_x),
+                shooter == "Pete Nance") 
+
+nance_map <- ggplot(nance_shots, aes(x = loc_x, y = loc_y, color = shot_outcome)) +
+  geom_point() +
+  labs(title = "Nance's Shot Map", subtitle = "2022-23 college basketball season")
+nance_map
+```
+
+
+  First and foremost, upon examining the disparity between the shot maps of both players, it becomes apparent that Nance has considerably fewer successful shots. However, there aren't any prevalent patterns of shot location having an impact on this. For example, the distribution of shots across these different areas of the court doesn't seem to display any areas where Nance is shooting from that might need improvement.
+  As we delve deeper into the analysis of Carolina Men's Basketball and the factors contributing to their absence from the March Madness tournament, the story takes an intriguing turn. While initial assumptions pointed to Caleb Love's shooting and the replacement of Brady Manek as possible causes, the data reveals a more nuanced picture. The comparative shot maps of Love and Pete Nance highlight the need for a comprehensive evaluation of player performance. The question arises: What other elements influenced Carolina's season outcome? Is it a matter of team chemistry, coaching strategies, or unforeseen challenges? Uncovering these answers becomes crucial in understanding the path forward for the Tar Heels and the adjustments necessary to reclaim their position among college basketball's elite. The journey continues as Carolina seeks to rebuild and find the winning formula that will propel them back into championship contention.
+  
+  
 ## References
 
 <!-- This section is for including references to related material -->
