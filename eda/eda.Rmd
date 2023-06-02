@@ -29,6 +29,7 @@ knitr::opts_knit$set(
 # Load files, environment variables, libraries, etc. here
 library(tidyverse)
 library(apstyle)
+library(ggplot2)
 
 # Install via devtools package using the following:
 devtools::install_github(repo = "JackLich10/gamezoneR")
@@ -39,17 +40,77 @@ progressr::with_progress({
   pbp <- gamezoneR::load_gamezone_pbp(gamezoneR:::available_seasons())
 })
 tictoc::toc()
-## 48.078 sec elapsed
+## 75.21 sec elapsed
 length(unique(pbp$game_id))
-## 24,994 games
+## 29455 games
 pbp %>% dplyr::filter(!is.na(loc_x)) %>% nrow()
-## 2,843,392 shot locations
+## 3,355,838 shot locations
 ```
+```{r}
+library(dplyr)
+library(ggplot2)
 
+# set a ggplot2 theme
+theme_set(
+  theme_bw() + 
+    theme(plot.title = element_text(face = "bold", size = 32/.pt, hjust = 0), 
+          plot.subtitle = element_text(face = "italic", size = 26/.pt), 
+          plot.caption = element_text(face = "italic", size = 20/.pt), 
+          strip.background = element_rect(color = "black", size = 3, linetype = "blank"),
+          strip.text = element_text(face = "bold", size = 24/.pt, hjust = 0), 
+          panel.grid.minor = element_blank(), 
+          panel.border = element_blank(), 
+          axis.ticks = element_blank(), 
+          axis.text = element_text(size = 24/.pt), 
+          axis.title = element_text(face = "bold", size = 26/.pt), 
+          legend.title = element_text(face = "bold", size = 26/.pt), 
+          legend.text = element_text(size = 24/.pt)))
+
+unc_schedule <- gamezoneR::gamezone_mbb_team_schedule(team = "North Carolina", season = "2021-22")
+unc_schedule2 <- gamezoneR::gamezone_mbb_team_schedule(team = "North Carolina", season = "2022-23")
+```
 ## Overview
 
-```{r}
+  In a stunning turn of events, the Carolina Men's Basketball Team, widely anticipated as frontrunners for this year's national championship, fell short of even making it to the tournament. The profound disappointment among Tar Heels fans reverberated through the air as their championship dreams were abruptly shattered.
+  What was the cause for this unexpected shift, you might ask. Was it the starting lineup replacement of Pete Nance after Brady Manek left the team? Or was it Caleb Love's unreliable shooting regression?
 
+```{r}
+pbp <- gamezoneR::gamezone_mbb_pbp(unc_schedule$game_id[1],
+                                   sub_parse = T)
+pbp %>% 
+  dplyr::count(sub_error)
+
+manek_pbp <- purrr::map_df(unc_schedule$game_id, 
+                          gamezoneR::gamezone_mbb_pbp, sub_parse = F)
+
+manek_shots <- manek_pbp %>% 
+  dplyr::filter(!is.na(loc_x),
+                shooter == "Brady Manek")
+
+gamezoneR::base_court +
+  geom_point(data = manek_shots,
+             aes(x = loc_x, y = loc_y, color = shot_outcome),
+             alpha = 0.8) +
+  theme(axis.line = element_blank(),
+        axis.text= element_blank(),
+        axis.ticks = element_blank(),
+        axis.title = element_blank(),
+        panel.background = element_blank(),
+        panel.grid = element_blank(),
+        plot.title = element_text(face = "bold", hjust = 0.5, size = 30/.pt, margin = margin(0, 0, 5, 0)),
+        plot.subtitle = element_text(face = "italic", hjust = 0.5, size = 24/.pt),
+        plot.caption = element_text(face = "italic", hjust = 1, size = 20/.pt, margin = margin(0, 0, 0, 0)),
+        legend.spacing.x = grid::unit(0, 'cm'),
+        legend.title = element_text(size = 20/.pt, face = "bold"), 
+        legend.text = element_text(size = 16/.pt),
+        legend.margin = margin(0, 0, 0, 0),
+        legend.position = 'bottom',
+        legend.box.margin = margin(-35, 0, 0, 0),
+        plot.margin = margin(5, 0, 5, 0)) +
+  labs(title = "All of Brady Manek's shots at UNC",
+       subtitle = "2021-22 college basketball season",
+       color = "Outcome",
+       caption = "Chart: @jacklich10 | Data: @gamezoneR")
 ```
 ## References
 
@@ -67,3 +128,4 @@ pbp %>% dplyr::filter(!is.na(loc_x)) %>% nrow()
 # Run tests like so:
 # source("tests/etl_test.R")
 ```
+
