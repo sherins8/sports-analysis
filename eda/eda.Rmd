@@ -74,6 +74,8 @@ unc_schedule2 <- gamezoneR::gamezone_mbb_team_schedule(team = "North Carolina", 
 ## Overview
 
   In a stunning turn of events, the Carolina Men's Basketball Team, widely anticipated as frontrunners for this year's national championship, fell short of even making it to the tournament. The profound disappointment among Tar Heels fans reverberated through the air as their championship dreams were abruptly shattered. The team's unexpected absence from the tournament has raised questions about the factors that led to this disappointing outcome. Could it be attributed to the lineup changes following Brady Manek's departure or Caleb Love's inconsistent shooting performance? The search for answers begins as Tar Heels supporters grapple with the realities of a season that didn't unfold as expected.
+  
+  
   First, I'll look into the difference between offensive and defensive techniques.
   
 
@@ -228,6 +230,8 @@ ggplot(caleb_efficiency, aes(x = Season, y = ShotPercentage, fill = Season)) +
 ```
  
   Upon closer inspection, Caleb Love's Shot Percentage rates show minimal variation. The bar graph depicting his shooting performance appears strikingly similar (37.17% last season compared to 37.70% this season). This observation may come as a surprise to devoted Carolina fans who attributed our team's underperformance to the perceived unpredictability of Caleb Love's shooting.
+  
+  
   This leads me to question the extent to which Brady Manek's departure and the subsequent addition of Pete Nance had a significant impact on Carolina Basketball, potentially jeopardizing their entire season.
   
   
@@ -254,6 +258,9 @@ nance_map
 
 
   First and foremost, upon examining the disparity between the shot maps of both players, it becomes apparent that Nance has considerably fewer successful shots. However, there aren't any prevalent patterns of shot location having an impact on this. For example, the distribution of shots across these different areas of the court doesn't seem to display any areas where Nance is shooting from that might need improvement.
+  
+  
+  
   As we delve deeper into the analysis of Carolina Men's Basketball and the factors contributing to their absence from the March Madness tournament, the story takes an intriguing turn. While initial assumptions pointed to Caleb Love's shooting and the replacement of Brady Manek as possible causes, the data reveals a more nuanced picture. The comparative shot maps of Love and Pete Nance highlight the need for a comprehensive evaluation of player performance. The question arises: What other elements influenced Carolina's season outcome? Is it a matter of team chemistry, coaching strategies, or unforeseen challenges? Uncovering these answers becomes crucial in understanding the path forward for the Tar Heels and the adjustments necessary to reclaim their position among college basketball's elite. The journey continues as Carolina seeks to rebuild and find the winning formula that will propel them back into championship contention.
   
   
